@@ -1,0 +1,293 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RESPONSABLE_MINISTERE
+  RESPONSABLE_POLE
+  MEMBRE
+}
+
+enum StatutPresence {
+  EN_ATTENTE
+  PRESENT
+  ABSENT
+}
+
+enum TypeActivite {
+  GLOBALE
+  MINISTERE
+  POLE
+}
+
+enum NiveauImportance {
+  FAIBLE
+  NORMAL
+  IMPORTANT
+  CRITIQUE
+}
+
+enum NotificationType {
+  INFO
+  SERVICE
+  ACTIVITE
+  PRESENCE
+  BILAN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  nom           String
+  prenom        String
+  email         String    @unique
+  emailVerified DateTime?
+  motDePasse    String?
+  telephone     String?
+  dateNaissance DateTime?
+  image         String?
+  role          Role      @default(MEMBRE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts              Account[]
+  sessions              Session[]
+  ministresMembres      MembreMinistere[]
+  polesMembres          MembrePole[]
+  responsableMinisteres ResponsableMinistere[]
+  responsablePoles      ResponsablePole[]
+  services              Service[]
+  presences             Presence[]
+  indisponibilites      Indisponibilite[]
+  bilans                Bilan[]
+  tachesRealisees       TacheRealisee[]
+  notifications         Notification[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Ministere {
+  id          String   @id @default(cuid())
+  nom         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  membres      MembreMinistere[]
+  responsables ResponsableMinistere[]
+  poles        Pole[]
+  activites    Activite[]
+}
+
+model ResponsableMinistere {
+  userId      String
+  ministereId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministere   Ministere @relation(fields: [ministereId], references: [id], onDelete: Cascade)
+
+  @@id([userId, ministereId])
+}
+
+model MembreMinistere {
+  userId      String
+  ministereId String
+  joinedAt    DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministere   Ministere @relation(fields: [ministereId], references: [id], onDelete: Cascade)
+
+  @@id([userId, ministereId])
+}
+
+model Pole {
+  id          String   @id @default(cuid())
+  nom         String
+  description String?
+  ministereId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ministere    Ministere        @relation(fields: [ministereId], references: [id], onDelete: Cascade)
+  membres      MembrePole[]
+  responsables ResponsablePole[]
+  activites    Activite[]
+  services     Service[]
+  bilans       Bilan[]
+}
+
+model ResponsablePole {
+  userId String
+  poleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pole   Pole   @relation(fields: [poleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, poleId])
+}
+
+model MembrePole {
+  userId   String
+  poleId   String
+  joinedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pole     Pole     @relation(fields: [poleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, poleId])
+}
+
+model Activite {
+  id               String           @id @default(cuid())
+  nom              String
+  description      String?
+  date             DateTime
+  heureDebut       String
+  heureFin         String
+  type             TypeActivite     @default(GLOBALE)
+  niveauImportance NiveauImportance @default(NORMAL)
+  ministereId      String?
+  poleId           String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  ministere Ministere? @relation(fields: [ministereId], references: [id], onDelete: SetNull)
+  pole      Pole?      @relation(fields: [poleId], references: [id], onDelete: SetNull)
+  services  Service[]
+  presences Presence[]
+  taches    Tache[]
+  bilans    Bilan[]
+}
+
+model Service {
+  id         String   @id @default(cuid())
+  nom        String
+  activiteId String
+  poleId     String
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+  pole     Pole     @relation(fields: [poleId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Presence {
+  id         String         @id @default(cuid())
+  userId     String
+  activiteId String
+  statut     StatutPresence @default(EN_ATTENTE)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activiteId])
+}
+
+model Indisponibilite {
+  id        String   @id @default(cuid())
+  userId    String
+  dateDebut DateTime
+  dateFin   DateTime
+  raison    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Tache {
+  id         String   @id @default(cuid())
+  nom        String
+  ordre      Int      @default(0)
+  activiteId String
+  createdAt  DateTime @default(now())
+
+  activite        Activite        @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+  tachesRealisees TacheRealisee[]
+}
+
+model TacheRealisee {
+  tacheId   String
+  userId    String
+  realiseeA DateTime @default(now())
+
+  tache Tache @relation(fields: [tacheId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([tacheId, userId])
+}
+
+model Bilan {
+  id          String   @id @default(cuid())
+  activiteId  String
+  poleId      String
+  userId      String
+  note        Int?
+  commentaire String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  activite  Activite       @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+  pole      Pole           @relation(fields: [poleId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklist ChecklistItem[]
+
+  @@unique([activiteId, poleId])
+}
+
+model ChecklistItem {
+  id      String  @id @default(cuid())
+  bilanId String
+  label   String
+  valide  Boolean @default(false)
+
+  bilan Bilan @relation(fields: [bilanId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  titre     String
+  message   String
+  type      NotificationType @default(INFO)
+  lu        Boolean          @default(false)
+  lien      String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
