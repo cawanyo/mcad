@@ -17,24 +17,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       })
       if (indispo) return NextResponse.json({ error: "Membre indisponible" }, { status: 409 })
     }
-    const updated = await prisma.service.update({
-      where: { id },
-      data: { userId: userId ?? null },
-      include: { pole: true, user: { select: { id: true, nom: true, prenom: true, image: true } } },
-    })
+   
 
     if (userId) {
       const dateStr = service.activite.date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
       await createNotification({
         userId,
         titre: "Service assigné",
-        message: `Vous êtes assigné au service "${service.nom}" (${service.pole.nom}) pour ${service.activite.nom} — ${dateStr}`,
+        message: `Vous êtes assigné au service  (${service.pole?.nom}) pour ${service.activite.nom} — ${dateStr}`,
         type: "SERVICE",
         lien: `/activites/${service.activiteId}`,
       })
     }
 
-    return NextResponse.json({ data: updated })
+    return NextResponse.json({  })
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })

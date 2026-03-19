@@ -10,33 +10,53 @@ interface ActivityCardProps {
   activite: ActiviteWithRelations
   onClick?: () => void
 }
+export default function ActivityCard({ activite, onClick }: { activite: any, onClick: () => void }) {
+  const dateObj = new Date(activite.date);
+  const day = dateObj.getDate();
+  const month = dateObj.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
 
-export default function ActivityCard({ activite, onClick }: ActivityCardProps) {
   return (
-    <Card onClick={onClick} className="hover:border-primary-200 transition-colors">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-semibold text-gray-900 leading-tight">{activite.nom}</h3>
-        <Badge className={getNiveauColor(activite.niveauImportance)}>
-          {getNiveauLabel(activite.niveauImportance)}
-        </Badge>
+    <div 
+      onClick={onClick}
+      className="group bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all cursor-pointer overflow-hidden flex"
+    >
+      {/* Date "Ticket" Side */}
+      <div className="w-20 bg-slate-50 border-r border-slate-50 flex flex-col items-center justify-center p-2 group-hover:bg-blue-600 transition-colors">
+        <span className="text-2xl font-black text-slate-800 group-hover:text-white leading-none">{day}</span>
+        <span className="text-[10px] font-bold text-slate-400 group-hover:text-blue-100 mt-1">{month}</span>
       </div>
-      {activite.description && <p className="text-sm text-gray-500 mb-3 line-clamp-2">{activite.description}</p>}
-      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <Calendar className="h-3.5 w-3.5" />
-          {formatDate(activite.date)}
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5" />
-          {activite.heureDebut} – {activite.heureFin}
-        </span>
-        {(activite.ministere || activite.pole) && (
-          <span className="flex items-center gap-1">
-            <MapPin className="h-3.5 w-3.5" />
-            {activite.pole?.nom ?? activite.ministere?.nom}
+
+      {/* Content Side */}
+      <div className="flex-1 p-5 space-y-3">
+        <div className="flex justify-between items-start">
+          <h3 className="font-bold text-slate-800 text-lg group-hover:text-blue-700 transition-colors line-clamp-1">
+            {activite.nom}
+          </h3>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+            <Clock className="h-3 w-3" /> {activite.heureDebut} - {activite.heureFin}
+          </div>
+          {activite.lieu && (
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
+              <MapPin className="h-3 w-3" /> {activite.lieu}
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2 border-t border-slate-50 flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase text-blue-500 tracking-tighter">
+            {activite.pole?.nom || activite.ministere?.nom || "Communauté"}
           </span>
-        )}
+          <div className="flex -space-x-2">
+            {/* Si vous avez les avatars des responsables, affichez-les ici */}
+            <div className="h-6 w-6 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-bold">
+              +{activite._count?.services || 0}
+            </div>
+          </div>
+        </div>
       </div>
-    </Card>
+    </div>
   )
 }

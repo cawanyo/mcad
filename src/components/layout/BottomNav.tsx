@@ -9,6 +9,7 @@ const navItems = [
   { href: "/calendrier", label: "Calendrier", icon: Calendar },
   { href: "/ministeres", label: "Ministères", icon: Church },
   { href: "/profil", label: "Profil", icon: User },
+  
 ]
 
 export default function BottomNav() {
@@ -24,8 +25,8 @@ export default function BottomNav() {
               href={href}
               className={cn("flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-colors", active ? "text-primary-600" : "text-gray-500")}
             >
-              <Icon className={cn("h-5 w-5", active && "stroke-[2.5px]")} />
-              <span className="text-xs font-medium">{label}</span>
+              <Icon className={cn("h-3 w-3 md:h-5 md:w-5", active && "stroke-[2.5px]")} />
+              <span className="text-[10px] md:text-xs font-medium">{label}</span>
             </Link>
           )
         })}

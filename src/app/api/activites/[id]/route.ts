@@ -13,7 +13,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       include: {
         ministere: true,
         pole: true,
-        services: { include: { pole: true, user: { select: { id: true, nom: true, prenom: true, image: true } } } },
+        services: { include: { ministere :true, pole: true, assignations: { include: {user: true}} } },
         presences: { include: { user: { select: { id: true, nom: true, prenom: true, image: true } } } },
         taches: { orderBy: { ordre: "asc" }, include: { tachesRealisees: { include: { user: { select: { id: true, nom: true, prenom: true } } } } } },
         bilans: { include: { pole: true, user: { select: { id: true, nom: true, prenom: true } }, checklist: true } },

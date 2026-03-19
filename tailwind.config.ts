@@ -9,7 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        border: "hsl(var(--border))", 
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        // Assurez-vous que les autres couleurs utilisées par vos composants sont là
         primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
           50: "#eff6ff",
           100: "#dbeafe",
           200: "#bfdbfe",
@@ -18,6 +26,11 @@ const config: Config = {
           700: "#1d4ed8",
           800: "#1e40af",
           900: "#1e3a8a",
+        },
+        // Ajoutez aussi les autres variables si elles manquent (primary, card, etc.)
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
       },
     },

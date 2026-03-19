@@ -1,114 +1,198 @@
 "use client"
+
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
-import Header from "@/components/layout/Header"
-import Card from "@/components/ui/Card"
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, parseISO, startOfWeek, endOfWeek } from "date-fns"
+import { 
+  format, startOfMonth, endOfMonth, startOfWeek, 
+  endOfWeek, eachDayOfInterval, isSameMonth, 
+  isSameDay, addMonths, subMonths 
+} from "date-fns"
 import { fr } from "date-fns/locale"
-import { PDFDownloadLink } from "@react-pdf/renderer"
-import WeeklyCalendarPDF from "@/components/pdf/WeeklyCalendarPDF"
+import { 
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
+  Clock, MapPin, Sparkles, LayoutGrid, ArrowRight
+} from "lucide-react"
+
+
+import Badge from "@/components/ui/Badge"
+import { useRouter } from "next/navigation"
 
 export default function CalendrierPage() {
-  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const router = useRouter()
 
-  const monthStart = startOfMonth(currentDate)
-  const monthEnd = endOfMonth(currentDate)
-
-  const { data: activites } = useQuery({
-    queryKey: ["activites-calendrier", format(monthStart, "yyyy-MM")],
-    queryFn: () =>
-      fetch(`/api/activites?from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`)
-        .then((r) => r.json())
-        .then((r) => r.data ?? []),
-    refetchInterval: 60_000,
+  const { data: rawData, isLoading } = useQuery({
+    queryKey: ["activities"],
+    queryFn: async () => {
+      const res = await fetch("/api/activites")
+      if (!res.ok) throw new Error("Erreur réseau")
+      const json = await res.json()
+      return json.data || []
+    }
   })
 
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  const activities = Array.isArray(rawData) ? rawData : []
+  
+  const selectedDayActivities = activities.filter((act: any) => 
+    act?.date && isSameDay(new Date(act.date), selectedDate)
+  )
 
-  const getActivitesForDay = (day: Date) =>
-    (activites ?? []).filter((a: any) => isSameDay(parseISO(a.date), day))
+  // Navigation
+  const nextMonth = () => setCurrentDate(addMonths(currentDate, 1))
+  const prevMonth = () => setCurrentDate(subMonths(currentDate, 1))
 
-  const selectedActivites = selectedDay ? getActivitesForDay(selectedDay) : []
-
-  const weeklyPdfDays = weekDays.map((d) => ({
-    label: format(d, "EEEE dd MMMM", { locale: fr }),
-    activites: getActivitesForDay(d).map((a: any) => ({ nom: a.nom, heureDebut: a.heureDebut })),
-  }))
+  // Logique du calendrier
+  const monthStart = startOfMonth(currentDate)
+  const monthEnd = endOfMonth(monthStart)
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 })
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 })
+  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate })
 
   return (
-    <div>
-      <Header title="Calendrier" />
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <button onClick={() => setCurrentDate(subMonths(currentDate, 1))} className="p-2 rounded-lg hover:bg-gray-100">
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
-          <h2 className="text-base font-semibold text-gray-900 capitalize">
-            {format(currentDate, "MMMM yyyy", { locale: fr })}
-          </h2>
-          <button onClick={() => setCurrentDate(addMonths(currentDate, 1))} className="p-2 rounded-lg hover:bg-gray-100">
-            <ChevronRight className="h-5 w-5 text-gray-600" />
-          </button>
+    <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[calc(100vh-10rem)] p-1">
+      
+      {/* SECTION CALENDRIER (Gauche) */}
+      <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        
+        {/* Header du Calendrier */}
+        <div className="p-6 flex items-center justify-between border-b border-slate-50 bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
+              <CalendarIcon className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-xl font-black text-slate-800 capitalize">
+              {format(currentDate, "MMMM yyyy", { locale: fr })}
+            </h2>
+          </div>
+          <div className="flex gap-2 bg-white p-1 rounded-xl border border-slate-100 shadow-sm">
+            <button onClick={prevMonth} className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-600">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button onClick={() => setCurrentDate(new Date())} className="px-3 text-[10px] font-black uppercase tracking-tighter text-blue-600 hover:bg-blue-50 rounded-lg">
+              Aujourd'hui
+            </button>
+            <button onClick={nextMonth} className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-600">
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"].map((d) => (
-            <div key={d} className="text-xs font-medium text-gray-400 py-1">{d}</div>
+        {/* Grille Jours de la semaine */}
+        <div className="grid grid-cols-7 border-b border-slate-50 bg-slate-50/50">
+          {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day) => (
+            <div key={day} className="py-3 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {day}
+            </div>
           ))}
-          {Array.from({ length: (monthStart.getDay() || 7) - 1 }).map((_, i) => <div key={i} />)}
-          {daysInMonth.map((day) => {
-            const dayActivites = getActivitesForDay(day)
-            const isSelected = selectedDay && isSameDay(day, selectedDay)
+        </div>
+
+        {/* Grille des jours */}
+        <div className="grid grid-cols-7 flex-1">
+          {calendarDays.map((day, idx) => {
+            const dayActivities = activities.filter((act: any) => isSameDay(new Date(act.date), day))
+            const isSelected = isSameDay(day, selectedDate)
             const isToday = isSameDay(day, new Date())
+            const isCurrentMonth = isSameMonth(day, monthStart)
+            
             return (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDay(isSelected ? null : day)}
-                className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-colors ${isSelected ? "bg-primary-600 text-white" : isToday ? "bg-primary-50 text-primary-700" : "text-gray-700 hover:bg-gray-100"}`}
+              <div
+                key={day.toString()}
+                onClick={() => setSelectedDate(day)}
+                className={`min-h-[50px] md:min-h-[120px] p-2 border-r border-b border-slate-50 cursor-pointer transition-all relative group
+                  ${!isCurrentMonth ? "bg-slate-50/30" : "bg-white"}
+                  ${isSelected ? "bg-blue-50/50" : "hover:bg-slate-50/80"}
+                `}
               >
-                {day.getDate()}
-                {dayActivites.length > 0 && (
-                  <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-primary-500"}`} />
-                )}
-              </button>
+                <div className="flex justify-between items-center mb-1">
+                  <span className={`text-sm font-black w-7 h-7 flex items-center justify-center rounded-full transition-colors
+                    ${isSelected ? "bg-blue-600 text-white shadow-md shadow-blue-100" : ""}
+                    ${isToday && !isSelected ? "text-blue-600 bg-blue-50" : ""}
+                    ${!isCurrentMonth && !isSelected ? "text-slate-300" : "text-slate-600"}
+                  `}>
+                    {format(day, "d")}
+                  </span>
+                </div>
+                
+                {/* Indicateurs d'activités */}
+                <div className="space-y-1">
+                  {dayActivities.slice(0, 3).map((act: any) => (
+                    <div 
+                      key={act.id} 
+                      className="text-[9px] font-bold bg-white border border-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md truncate shadow-sm group-hover:border-blue-200 transition-colors"
+                    >
+                      <span className="text-blue-500 mr-1">•</span>
+                      {act.nom}
+                    </div>
+                  ))}
+                  {dayActivities.length > 3 && (
+                    <div className="text-[8px] font-black text-blue-500 pl-1 uppercase tracking-tighter">
+                      +{dayActivities.length - 3} autres
+                    </div>
+                  )}
+                </div>
+              </div>
             )
           })}
         </div>
+      </div>
 
-        {selectedDay && (
-          <div>
-            <p className="text-sm font-semibold text-gray-700 mb-2 capitalize">{format(selectedDay, "EEEE dd MMMM yyyy", { locale: fr })}</p>
-            {selectedActivites.length === 0 && <p className="text-sm text-gray-400 text-center py-3">Pas d'activité ce jour</p>}
-            <div className="space-y-2">
-              {selectedActivites.map((a: any) => (
-                <Card key={a.id} onClick={() => router.push(`/activites/${a.id}`)} className="cursor-pointer hover:border-primary-200">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-gray-900">{a.nom}</p>
-                    <span className="text-xs text-gray-500 flex items-center gap-1"><Clock className="h-3 w-3" />{a.heureDebut}</span>
+      {/* SECTION DÉTAILS (Droite) */}
+      <div className="w-full lg:w-96 space-y-4">
+        <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl shadow-slate-200 relative overflow-hidden">
+          <Sparkles className="absolute -right-2 -top-2 h-16 w-16 text-white/10" />
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Sélection</p>
+          <h3 className="text-2xl font-black capitalize leading-tight">
+            {format(selectedDate, "EEEE d MMMM", { locale: fr })}
+          </h3>
+        </div>
+
+        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
+          {selectedDayActivities.length > 0 ? (
+            selectedDayActivities.map((act: any) => (
+              <div 
+                key={act.id} 
+                onClick={() => router.push(`/activites/${act.id}`)}
+                className="group bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer relative"
+              >
+                <div className="absolute right-4 top-5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowRight className="h-4 w-4 text-blue-500" />
+                </div>
+                <Badge className="bg-blue-50 text-blue-600 border-none text-[9px] font-black uppercase tracking-tighter mb-3">
+                  {act.type || "Événement"}
+                </Badge>
+                <h4 className="font-black text-slate-800 text-lg leading-tight mb-3 group-hover:text-blue-700 transition-colors">
+                  {act.nom}
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
+                    <Clock className="h-3.5 w-3.5 text-blue-500" />
+                    <span>{act.heureDebut || "Horaire non défini"}</span>
                   </div>
-                </Card>
-              ))}
+                  {act.lieu && (
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400">
+                      <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="truncate">{act.lieu}</span>
+                    </div>
+                  )}
+                </div>
+                {act.description && (
+                  <p className="mt-4 text-[11px] text-slate-500 italic line-clamp-2 bg-slate-50 p-2 rounded-xl">
+                    "{act.description}"
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+              <div className="bg-slate-50 p-4 rounded-full mb-4">
+                <LayoutGrid className="h-8 w-8 text-slate-300" />
+              </div>
+              <p className="text-sm font-bold text-slate-400">Journée libre</p>
+              <p className="text-[11px] text-slate-300">Aucune activité prévue pour cette date.</p>
             </div>
-          </div>
-        )}
-
-        <PDFDownloadLink
-          document={<WeeklyCalendarPDF weekLabel={`Semaine du ${format(weekStart, "dd")} au ${format(weekEnd, "dd MMMM yyyy", { locale: fr })}`} days={weeklyPdfDays} />}
-          fileName="planning-semaine.pdf"
-        >
-          {({ loading }) => (
-            <button className="w-full py-2.5 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors" disabled={loading}>
-              {loading ? "Génération..." : "Télécharger planning semaine (PDF)"}
-            </button>
           )}
-        </PDFDownloadLink>
+        </div>
       </div>
     </div>
   )

@@ -25,7 +25,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         polesMembres: { include: { pole: true } },
         responsableMinisteres: { include: { ministere: true } },
         responsablePoles: { include: { pole: true } },
-        services: { include: { activite: true, pole: true }, orderBy: { createdAt: "desc" }, take: 20 },
+        assignations: { 
+          include: { 
+            service: { 
+              include: { 
+                activite: true, 
+                pole: true,
+                ministere: true 
+              } 
+            } 
+          }, 
+          orderBy: { service: { activite: { date: "desc" } } }, // Tri plus logique par date d'activité
+          take: 20 
+        },
         presences: { include: { activite: true }, orderBy: { createdAt: "desc" }, take: 20 },
       },
     })

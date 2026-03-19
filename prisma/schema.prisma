@@ -61,12 +61,12 @@ model User {
   polesMembres          MembrePole[]
   responsableMinisteres ResponsableMinistere[]
   responsablePoles      ResponsablePole[]
-  services              Service[]
   presences             Presence[]
   indisponibilites      Indisponibilite[]
   bilans                Bilan[]
   tachesRealisees       TacheRealisee[]
   notifications         Notification[]
+  assignations ServiceAssignation[]
 }
 
 model Account {
@@ -114,6 +114,7 @@ model Ministere {
   responsables ResponsableMinistere[]
   poles        Pole[]
   activites    Activite[]
+  services Service[]
 }
 
 model ResponsableMinistere {
@@ -192,18 +193,37 @@ model Activite {
   bilans    Bilan[]
 }
 
-model Service {
-  id         String   @id @default(cuid())
-  nom        String
-  activiteId String
-  poleId     String
-  userId     String?
-  createdAt  DateTime @default(now())
+model ServiceAssignation {
+  serviceId String
+  userId    String
+  
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  activite Activite @relation(fields: [activiteId], references: [id], onDelete: Cascade)
-  pole     Pole     @relation(fields: [poleId], references: [id], onDelete: Cascade)
-  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@id([serviceId, userId])
 }
+
+
+model Service {
+  id          String   @id @default(cuid())
+  besoins     String   // Renommé pour correspondre à l'API
+  statut      String   @default("EN_ATTENTE") // Ajouté pour le suivi
+  
+  activiteId  String
+  ministereId String   // Ajout de la relation obligatoire au Ministère
+  poleId      String?
+  assignations ServiceAssignation[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  activite    Activite  @relation(fields: [activiteId], references: [id], onDelete: Cascade)
+  ministere   Ministere @relation(fields: [ministereId], references: [id], onDelete: Cascade)
+  pole        Pole?     @relation(fields: [poleId], references: [id], onDelete: Cascade)
+
+}
+
 
 model Presence {
   id         String         @id @default(cuid())
