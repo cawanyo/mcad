@@ -47,12 +47,6 @@ export function AddServiceForm({ activityId, onSuccess }: { activityId: string, 
         poleIds: selectedPoles
       })
     })
-    if (!response.ok) {
-        const error = await response.json()
-        console.log(error)
-      alert("Erreur lors de la création du service", error)
-      return
-    }
 
     onSuccess()
   }

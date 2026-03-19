@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma"
 
 export async function POST(
   request: Request, 
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const id = await params.then(p => p.id)
     const session = await auth()
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
 
@@ -24,7 +25,7 @@ export async function POST(
           prisma.service.create({
             data: {
               besoins: besoins || "",
-              activite: { connect: { id: params.id } },   // On connecte l'activité
+              activite: { connect: { id: id } },   // On connecte l'activité
               ministere: { connect: { id: ministereId } }, // On connecte le ministère
               pole: { connect: { id: pId } },             // On connecte le pôle
             },
@@ -38,7 +39,7 @@ export async function POST(
     const singleService = await prisma.service.create({
       data: {
         besoins: besoins || "",
-        activite: { connect: { id: params.id } },
+        activite: { connect: { id: id } },
         ministere: { connect: { id: ministereId } },
         // On ne met pas de champ 'pole', il restera null car optionnel dans le schema
       },

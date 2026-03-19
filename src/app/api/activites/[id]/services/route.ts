@@ -18,15 +18,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       })
       if (indispo) return NextResponse.json({ error: "Ce membre est indisponible à cette date" }, { status: 409 })
       const conflict = await prisma.service.findFirst({
-        where: { userId: parsed.data.userId, activiteId: id, id: { not: undefined } },
+        where: { assignations: { some: {userId :parsed.data.userId}} , activiteId: id, id: { not: undefined } },
       })
       if (conflict) return NextResponse.json({ error: "Ce membre est déjà assigné à un service pour cette activité" }, { status: 409 })
     }
-    const service = await prisma.service.create({
-      data: parsed.data,
-      include: { pole: true, user: { select: { id: true, nom: true, prenom: true, image: true } } },
-    })
-    return NextResponse.json({ data: service }, { status: 201 })
+    // const service = await prisma.service.create({
+    //   data:{
+
+    //     activite: { connect: { id } },
+    //     pole: parsed.data.poleId ? { connect: { id: parsed.data.poleId } } : undefined,
+    //     assignations: parsed.data.userId ? { create: { userId: parsed.data.userId } } : undefined,
+    //   } ,
+    //   include: { pole: true, assignations: {include: {user :{ select: { id: true, nom: true, prenom: true, image: true } } }}},
+    // })
+    return NextResponse.json({ data: {} }, { status: 201 })
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
